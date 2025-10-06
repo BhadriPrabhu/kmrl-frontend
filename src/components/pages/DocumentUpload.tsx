@@ -11,16 +11,79 @@ const DocumentUpload: React.FC = () => {
     tags: '',
     description: ''
   });
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]); // Store uploaded files
+
+  // New states for demo features
+  const [isLoading, setIsLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [extractedText, setExtractedText] = useState('');
 
   const handleFileUpload = (files: File[]) => {
+    setUploadedFiles(files); // Store files
     console.log('Files uploaded:', files);
     // Here you would typically send files to your backend
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (uploadedFiles.length === 0) {
+      alert('Please upload a document first!');
+      return;
+    }
     console.log('Form submitted:', uploadForm);
-    // Here you would process the form data
+
+    // Start loading and reset
+    setIsLoading(true);
+    setSuccessMessage('');
+    setExtractedText('');
+
+    // Fake delay for scanning + sending (simulates Tesseract without it)
+    setTimeout(() => {
+      setIsLoading(false);
+
+      // Dummy extracted text after "scanning"
+      const dummyExtractedText = `Sample Document Content (Fake OCR Result):
+Date: October 06, 2025
+Department: ${uploadForm.department || 'HR'}
+Document Title: ${uploadForm.title || 'Sample Document'}
+Applicant/Subject Name: John Doe
+Position/Topic: Software Engineer / Safety Protocol Update
+Experience/Details: 5 years in frontend dev / Emergency evacuation procedures updated for stations 1-5
+Skills/Key Changes: React, JavaScript, GitHub / New safety equipment requirements effective January 2025
+Concern Dept: IT Review Team
+Additional Notes: Requires immediate attention for approval process.`;
+
+      setExtractedText(dummyExtractedText);
+
+      // Success message with concern dept
+      setSuccessMessage(`Document "${uploadForm.title || 'Sample Document'}" was sent to concern dept (${uploadForm.department || 'IT Review Team'}).`);
+
+      // Dummy summarized data based on form (static for demo)
+      const dummySummary = {
+        title: uploadForm.title || 'Sample Document',
+        department: uploadForm.department || 'HR',
+        keyPoints: [
+          'Strong React experience highlighted',
+          '5+ years in frontend development',
+          'Proficient in GitHub and collaboration tools',
+          `Department-specific: ${uploadForm.department || 'HR'} compliance ensured`
+        ],
+        entities: {
+          name: 'John Doe',
+          dept: uploadForm.department || 'HR',
+          position: 'Software Engineer',
+          concernDept: 'IT Review Team'
+        },
+        overallScore: '8.5/10',
+        recommendation: 'Proceed to interview stage - High potential candidate',
+        fullText: dummyExtractedText // Pass extracted text too
+      };
+
+      // Store dummy summary in localStorage for AISummaries (no router needed)
+      localStorage.setItem('demoSummary', JSON.stringify(dummySummary));
+
+      // Here you would process the form data
+    }, 2500); // 2.5s for realistic loading
   };
 
   const departments = [
@@ -57,6 +120,9 @@ const DocumentUpload: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Upload Files</h2>
           <FileUpload onFileUpload={handleFileUpload} />
+          {uploadedFiles.length > 0 && (
+            <p className="mt-2 text-sm text-gray-600">Selected: {uploadedFiles.map(f => f.name).join(', ')}</p>
+          )}
         </div>
 
         {/* Metadata Form */}
@@ -169,14 +235,48 @@ const DocumentUpload: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+              disabled={isLoading || uploadedFiles.length === 0} // Disable during load or no file
+              className={`w-full flex items-center justify-center px-4 py-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors ${
+                isLoading || uploadedFiles.length === 0
+                  ? 'bg-gray-400 text-gray-500 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
             >
               <Send className="h-4 w-4 mr-2" />
-              Process Document
+              {isLoading ? 'Processing Document...' : 'Process Document'}
             </button>
           </form>
         </div>
       </div>
+
+      {/* Loading indicator */}
+      {isLoading && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-sm text-blue-800">Loading... Scanning document with OCR and sending to concern department...</p>
+          <div className="flex justify-center mt-2">
+            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        </div>
+      )}
+
+      {/* Display dummy extracted text after scanning */}
+      {extractedText && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <h3 className="text-sm font-medium text-gray-900 mb-2">Scanned Document Text (Dummy OCR Result):</h3>
+          <pre className="text-xs bg-white p-3 rounded border overflow-auto max-h-40">
+            {extractedText}
+          </pre>
+        </div>
+      )}
+
+      {/* Success message for sending to dept */}
+      {successMessage && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <p className="text-sm font-medium text-green-800">
+            {successMessage} Switch to the "AI Summaries" tab to view the generated summary.
+          </p>
+        </div>
+      )}
 
       {/* Processing Status */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

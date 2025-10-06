@@ -1,10 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Brain, FileText, Clock, Filter } from 'lucide-react';
 import { mockDocuments } from '../../data/mockData';
 
 const AISummaries: React.FC = () => {
   const [selectedDocument, setSelectedDocument] = useState<string>('');
   const [summaryFilter, setSummaryFilter] = useState('all');
+  const [passedSummary, setPassedSummary] = useState<any>(null); // For stored dummy summary
+
+  // Effect to load stored summary on mount (no router needed)
+  useEffect(() => {
+    const stored = localStorage.getItem('demoSummary');
+    if (stored) {
+      try {
+        const decoded = JSON.parse(stored);
+        setPassedSummary(decoded);
+        // Auto-select document
+        const mockDoc = mockDocuments.find(doc => doc.title === decoded.title);
+        if (mockDoc) {
+          setSelectedDocument(mockDoc.id);
+        } else {
+          setSelectedDocument('passed-' + decoded.title);
+        }
+      } catch (e) {
+        console.error('Failed to parse stored summary');
+      }
+    }
+  }, []); // Run once on mount
 
   const documentsWithSummaries = mockDocuments.filter(doc => doc.summary);
 
@@ -37,14 +58,36 @@ const AISummaries: React.FC = () => {
     }
   ];
 
+  // Use passed summary if available, else fallback to mock
+  const currentSummaryObj = passedSummary || (documentsWithSummaries.find(d => d.id === selectedDocument) ? 
+    { summary: documentsWithSummaries.find(d => d.id === selectedDocument)?.summary, title: documentsWithSummaries.find(d => d.id === selectedDocument)?.title } : null);
+
   const getInsightIcon = (type: string) => {
     switch(type) {
       case 'Key Points': return '🔑';
       case 'Action Items': return '✅';
       case 'Risk Assessment': return '⚠️';
+      case 'Entities': return '📋';
+      case 'Recommendation': return '💡';
       default: return '📝';
     }
   };
+
+  // Override insights with passed data if available
+  const currentInsights = passedSummary ? [
+    {
+      type: 'Key Points',
+      items: passedSummary.keyPoints || mockInsights[0].items
+    },
+    {
+      type: 'Entities',
+      items: Object.entries(passedSummary.entities || {}).map(([k, v]) => `${k}: ${v}`)
+    },
+    {
+      type: 'Recommendation',
+      items: [passedSummary.recommendation || 'No recommendation available']
+    }
+  ] : mockInsights;
 
   return (
     <div className="space-y-6">
@@ -75,7 +118,7 @@ const AISummaries: React.FC = () => {
           </div>
           <div className="flex items-center text-sm text-gray-500">
             <Brain className="h-4 w-4 mr-1" />
-            AI Confidence: 94%
+            {passedSummary ? `AI Confidence: ${passedSummary.overallScore}` : 'AI Confidence: 94%'}
           </div>
         </div>
       </div>
@@ -108,12 +151,33 @@ const AISummaries: React.FC = () => {
                 </div>
               </button>
             ))}
+            {/* Show passed summary doc in list if not matching mock */}
+            {passedSummary && !mockDocuments.find(d => d.title === passedSummary.title) && (
+              <button
+                onClick={() => setSelectedDocument('passed-' + passedSummary.title)} // Unique ID
+                className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${
+                  selectedDocument === 'passed-' + passedSummary.title ? 'bg-blue-50 border-r-2 border-blue-500' : ''
+                }`}
+              >
+                <div className="flex items-start space-x-3">
+                  <FileText className="h-5 w-5 text-blue-500 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{passedSummary.title}</p>
+                    <p className="text-xs text-gray-500 mt-1">{passedSummary.department}</p>
+                    <div className="flex items-center mt-2">
+                      <Clock className="h-3 w-3 text-gray-400 mr-1" />
+                      <span className="text-xs text-gray-500">Just now</span>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            )}
           </div>
         </div>
 
         {/* Summary Details */}
         <div className="lg:col-span-2 space-y-6">
-          {selectedDocument ? (
+          {currentSummaryObj || passedSummary ? (
             <>
               {/* Summary Card */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -129,19 +193,19 @@ const AISummaries: React.FC = () => {
                 
                 <div className="prose prose-sm max-w-none">
                   <p className="text-gray-700 leading-relaxed">
-                    {documentsWithSummaries.find(d => d.id === selectedDocument)?.summary}
+                    {passedSummary ? passedSummary.recommendation : currentSummaryObj.summary}
                   </p>
                 </div>
 
                 <div className="mt-4 flex items-center text-sm text-gray-500">
                   <FileText className="h-4 w-4 mr-1" />
-                  <span>Generated from: {documentsWithSummaries.find(d => d.id === selectedDocument)?.title}</span>
+                  <span>Generated from: {passedSummary ? passedSummary.title : currentSummaryObj.title}</span>
                 </div>
               </div>
 
-              {/* AI Insights */}
+              {/* AI Insights - Use currentInsights */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {mockInsights.map((insight) => (
+                {currentInsights.map((insight) => (
                   <div key={insight.type} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                     <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center">
                       <span className="text-lg mr-2">{getInsightIcon(insight.type)}</span>
@@ -159,14 +223,25 @@ const AISummaries: React.FC = () => {
                 ))}
               </div>
 
+              {/* Show extracted text if passed */}
+              {passedSummary && passedSummary.fullText && (
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">Full Extracted Text</h4>
+                  <pre className="text-xs bg-white p-3 rounded border overflow-auto max-h-40">
+                    {passedSummary.fullText}
+                  </pre>
+                </div>
+              )}
+
               {/* Traceability */}
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <h4 className="text-sm font-medium text-gray-900 mb-2">Document Traceability</h4>
                 <div className="text-sm text-gray-600 space-y-1">
                   <p>• Source Document: Original safety protocol document</p>
                   <p>• Pages Referenced: 1-3, 7-9, 15-16</p>
-                  <p>• Last Updated: {new Date().toLocaleDateString()}</p>
+                  <p>• Last Updated: October 06, 2025</p>
                   <p>• AI Model: GPT-4 with domain-specific training</p>
+                  {passedSummary && <p>• Score: {passedSummary.overallScore}</p>}
                 </div>
               </div>
             </>
