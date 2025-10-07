@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { Bell, Search, User, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { Bell, Search, User, LogOut, Settings, ChevronDown, Globe } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { mockAlerts } from '../../data/mockData';
+import { useLanguage } from '../../context/LanguageContext';
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showLangMenu, setShowLangMenu] = useState(false);
   const unreadAlerts = mockAlerts.filter(alert => !alert.isRead).length;
 
   const getRoleDisplayName = (role: string) => {
@@ -46,9 +49,50 @@ const Navbar: React.FC = () => {
               <Search className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search documents..."
+                placeholder={t('common.search') + ' documents...'}
                 className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
               />
+            </div>
+
+            {/* Language Selector */}
+            <div className="relative">
+              <button
+                onClick={() => setShowLangMenu(!showLangMenu)}
+                className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <Globe className="h-5 w-5 text-gray-600" />
+                <span className="text-sm font-medium text-gray-700">
+                  {language === 'en' ? 'EN' : 'മലയാളം'}
+                </span>
+                <ChevronDown className="h-4 w-4 text-gray-400" />
+              </button>
+
+              {showLangMenu && (
+                <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg py-1 z-10 border border-gray-200">
+                  <button
+                    onClick={() => {
+                      setLanguage('en');
+                      setShowLangMenu(false);
+                    }}
+                    className={`flex items-center w-full px-4 py-2 text-sm hover:bg-gray-50 ${
+                      language === 'en' ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                    }`}
+                  >
+                    English
+                  </button>
+                  <button
+                    onClick={() => {
+                      setLanguage('ml');
+                      setShowLangMenu(false);
+                    }}
+                    className={`flex items-center w-full px-4 py-2 text-sm hover:bg-gray-50 ${
+                      language === 'ml' ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                    }`}
+                  >
+                    മലയാളം
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Notifications */}

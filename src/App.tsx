@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AuthProvider } from './hooks/useAuth';
+import { LanguageProvider } from './context/LanguageContext';
 import Navbar from './components/Layout/Navbar';
 import Sidebar from './components/Layout/Sidebar';
 import Dashboard from './components/pages/Dashboard';
@@ -54,18 +55,19 @@ function App() {
 
   return (
     <AuthProvider>
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="flex">
-          <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-          <main className="flex-1 p-6">
-            <div className="max-w-7xl mx-auto">
-              {renderContent()}
-            </div>
-          </main>
+      <LanguageProvider>
+        <div className="min-h-screen bg-gray-50">
+          <Navbar />
+          <div className="flex">
+            <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+            <main className="flex-1 p-6">
+              <div className="max-w-7xl mx-auto">
+                {renderContent()}
+              </div>
+            </main>
+          </div>
         </div>
-        {/* <RoleSelector /> */}
-      </div>
+      </LanguageProvider>
     </AuthProvider>
   );
 }

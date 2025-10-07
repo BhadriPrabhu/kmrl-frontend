@@ -1,20 +1,37 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileText, Users, Shield, TrendingUp, Clock, AlertTriangle } from 'lucide-react';
 import StatsCard from '../Dashboard/StatsCard';
 import AlertsList from '../Dashboard/AlertsList';
 import RecentDocuments from '../Dashboard/RecentDocuments';
 import { mockDocuments, mockAlerts } from '../../data/mockData';
 import { useAuth } from '../../hooks/useAuth';
+import { documentStorage } from '../../services/documentStorage';
+import { useLanguage } from '../../context/LanguageContext';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const { t } = useLanguage();
+  const [allDocuments, setAllDocuments] = useState<any[]>([]);
+  const [allAlerts, setAllAlerts] = useState<any[]>([]);
+
+  useEffect(() => {
+    const stored = documentStorage.getAllDocuments();
+    const storedAlerts = JSON.parse(localStorage.getItem('kmrl_alerts') || '[]');
+    setAllDocuments([...mockDocuments, ...stored]);
+    setAllAlerts([...mockAlerts, ...storedAlerts]);
+  }, []);
 
   const getDashboardStats = () => {
+    const totalDocs = allDocuments.length;
+    const aiSummaries = allDocuments.filter(d => d.summary).length;
+    const pendingReviews = allDocuments.filter(d => d.status === 'processing').length;
+    const complianceIssues = allAlerts.filter(a => a.type === 'compliance' && !a.isRead).length;
+
     const baseStats = [
-      { title: 'Total Documents', value: 247, icon: FileText, color: 'blue' as const, trend: { value: '+12%', isPositive: true } },
-      { title: 'AI Summaries Generated', value: 189, icon: TrendingUp, color: 'green' as const, trend: { value: '+23%', isPositive: true } },
-      { title: 'Pending Reviews', value: 8, icon: Clock, color: 'yellow' as const },
-      { title: 'Compliance Issues', value: 3, icon: AlertTriangle, color: 'red' as const }
+      { title: t('dashboard.totalDocuments'), value: totalDocs, icon: FileText, color: 'blue' as const, trend: { value: '+12%', isPositive: true } },
+      { title: 'AI Summaries Generated', value: aiSummaries, icon: TrendingUp, color: 'green' as const, trend: { value: '+23%', isPositive: true } },
+      { title: t('dashboard.pendingReviews'), value: pendingReviews, icon: Clock, color: 'yellow' as const },
+      { title: t('dashboard.complianceRate'), value: complianceIssues, icon: AlertTriangle, color: 'red' as const }
     ];
 
     // Add role-specific stats
@@ -28,9 +45,9 @@ const Dashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('dashboard.title')}</h1>
         <p className="mt-1 text-sm text-gray-600">
-          Welcome back, {user?.name}. Here's what's happening with your documents.
+          {t('dashboard.subtitle')}
         </p>
       </div>
 
@@ -43,8 +60,8 @@ const Dashboard: React.FC = () => {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AlertsList alerts={mockAlerts} />
-        <RecentDocuments documents={mockDocuments} />
+        <AlertsList alerts={allAlerts.slice(0, 5)} />
+        <RecentDocuments documents={allDocuments.slice(0, 5)} />
       </div>
 
       {/* Quick Actions */}

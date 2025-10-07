@@ -1,17 +1,18 @@
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  Upload, 
-  FileText, 
-  Search, 
-  Shield, 
-  BookOpen, 
-  Users, 
+import {
+  LayoutDashboard,
+  Upload,
+  FileText,
+  Search,
+  Shield,
+  BookOpen,
+  Users,
   MessageSquare,
   BarChart3,
   Settings
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface SidebarProps {
   activeTab: string;
@@ -20,18 +21,19 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
   const { user } = useAuth();
+  const { t } = useLanguage();
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['all'] },
-    { id: 'upload', label: 'Document Upload', icon: Upload, roles: ['all'] },
-    { id: 'summaries', label: 'AI Summaries', icon: FileText, roles: ['all'] },
-    { id: 'search', label: 'Search & Filter', icon: Search, roles: ['all'] },
-    { id: 'compliance', label: 'Compliance Tracker', icon: Shield, roles: ['all'] },
-    { id: 'knowledge', label: 'Knowledge Repository', icon: BookOpen, roles: ['all'] },
-    { id: 'collaboration', label: 'Collaboration', icon: MessageSquare, roles: ['all'] },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3, roles: ['admin', 'executive_director'] },
-    { id: 'users', label: 'User Management', icon: Users, roles: ['admin'] },
-    { id: 'settings', label: 'Settings', icon: Settings, roles: ['admin'] }
+    { id: 'dashboard', labelKey: 'nav.dashboard', icon: LayoutDashboard, roles: ['all'] },
+    { id: 'upload', labelKey: 'nav.upload', icon: Upload, roles: ['all'] },
+    { id: 'summaries', labelKey: 'nav.aiSummaries', icon: FileText, roles: ['all'] },
+    { id: 'search', labelKey: 'nav.search', icon: Search, roles: ['all'] },
+    { id: 'compliance', labelKey: 'nav.compliance', icon: Shield, roles: ['all'] },
+    { id: 'knowledge', labelKey: 'nav.repository', icon: BookOpen, roles: ['all'] },
+    { id: 'collaboration', labelKey: 'nav.collaboration', icon: MessageSquare, roles: ['all'] },
+    { id: 'analytics', labelKey: 'Analytics', icon: BarChart3, roles: ['admin', 'executive_director'] },
+    { id: 'users', labelKey: 'nav.userManagement', icon: Users, roles: ['admin'] },
+    { id: 'settings', labelKey: 'Settings', icon: Settings, roles: ['admin'] }
   ];
 
   const hasAccess = (roles: string[]) => {
@@ -59,7 +61,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
                 }`}
               >
                 <Icon className={`mr-3 h-5 w-5 ${isActive ? 'text-blue-500' : 'text-gray-400'}`} />
-                {item.label}
+                {item.labelKey.includes('.') ? t(item.labelKey) : item.labelKey}
               </button>
             );
           })}
